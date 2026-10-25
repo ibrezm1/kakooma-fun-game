@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kakooma Math Quest - Fast Fun Math Puzzle Game</title>
+  <meta name="description" content="Play Kakooma Math Quest! Train mental addition and multiplication by finding the magic Kakooma number. Beat the clock and set new records!">
+  
+  <!-- Modern Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="theme-midnight">
+
+  <!-- Main App Container -->
+  <div class="app-wrapper">
+
+    <!-- Top Navigation & Controls Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-logo-icon">
+          <span class="logo-symbol">⚡</span>
+        </div>
+        <div class="brand-text">
+          <h1 class="logo-title">KAKOOMA</h1>
+          <span class="logo-tagline">Math Quest</span>
+        </div>
+      </div>
+
+      <!-- Live Stopwatch Timer & Records -->
+      <div class="timer-center-panel">
+        <div class="timer-card" id="timer-card">
+          <div class="timer-icon">⏱️</div>
+          <div class="timer-display" id="timer-display">00:00.00</div>
+          <div class="timer-status" id="timer-status">Ready to Start</div>
+        </div>
+        <div class="best-record-pill" id="best-record-pill" title="Personal best for current difficulty">
+          <span class="trophy-icon">🏆</span>
+          <span class="record-text">Best: <strong id="best-time-val">--:--.--</strong></span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="header-actions">
+        <button id="btn-hint" class="action-btn hint-btn" title="Get a hint (adds a gentle time buffer)">
+          <span class="btn-icon">💡</span>
+          <span class="btn-label">Hint</span>
+          <span class="hint-badge" id="hint-count">3</span>
+        </button>
+
+        <button id="btn-scratchpad" class="action-btn scratchpad-btn" title="Toggle Scratchpad for writing math notes">
+          <span class="btn-icon">✏️</span>
+          <span class="btn-label">Scratch</span>
+        </button>
+
+        <button id="btn-sound" class="action-btn icon-only-btn" title="Toggle Sound">
+          <span class="btn-icon" id="sound-icon">🔊</span>
+        </button>
+
+        <button id="btn-theme" class="action-btn icon-only-btn" title="Toggle Theme (Midnight / Sunny)">
+          <span class="btn-icon" id="theme-icon">🌙</span>
+        </button>
+
+        <button id="btn-help" class="action-btn icon-only-btn" title="How to Play Kakooma">
+          <span class="btn-icon">❓</span>
+        </button>
+
+        <button id="btn-restart" class="action-btn new-game-btn" title="Generate New Puzzle">
+          <span class="btn-icon">🔄</span>
+          <span class="btn-label">New Game</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Difficulty & Operation Level Bar -->
+    <nav class="difficulty-toolbar" aria-label="Game Settings">
+      <!-- Operation Selection -->
+      <div class="toolbar-group">
+        <span class="group-label">Operation:</span>
+        <div class="toggle-group" id="operation-toggle">
+          <button class="toggle-btn active" data-op="+" id="op-btn-add">
+            <span class="op-symbol">+</span> Addition
+          </button>
+          <button class="toggle-btn" data-op="*" id="op-btn-mul">
+            <span class="op-symbol">×</span> Multiplication
+          </button>
+        </div>
+      </div>
+
+      <!-- Level / Number Range Selection -->
+      <div class="toolbar-group">
+        <span class="group-label">Level / Max Sum:</span>
+        <div class="toggle-group" id="level-toggle">
+          <button class="toggle-btn active" data-level="10" id="level-10">10 & Under</button>
+          <button class="toggle-btn" data-level="20" id="level-20">20 & Under</button>
+          <button class="toggle-btn" data-level="25" id="level-25">25 & Under</button>
+          <button class="toggle-btn" data-level="50" id="level-50">50 & Under</button>
+          <button class="toggle-btn" data-level="100" id="level-100">100 & Under</button>
+        </div>
+      </div>
+
+      <!-- Wheel Size Selector (Junior vs Classic) -->
+      <div class="toolbar-group">
+        <span class="group-label">Size:</span>
+        <div class="toggle-group" id="size-toggle">
+          <button class="toggle-btn" data-size="4" id="size-4">4 Numbers</button>
+          <button class="toggle-btn active" data-size="5" id="size-5">5 Numbers</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Stage Progress Indicator -->
+    <div class="progress-bar-strip">
+      <div class="progress-step-item" id="prog-wheel-0">
+        <div class="prog-dot">1</div>
+        <span class="prog-name">Wheel 1</span>
+      </div>
+      <div class="prog-connector"></div>
+      <div class="prog-step-item" id="prog-wheel-1">
+        <div class="prog-dot">2</div>
+        <span class="prog-name">Wheel 2</span>
+      </div>
+      <div class="prog-connector"></div>
+      <div class="prog-step-item" id="prog-wheel-2">
+        <div class="prog-dot">3</div>
+        <span class="prog-name">Wheel 3</span>
+      </div>
+      <div class="prog-connector"></div>
+      <div class="prog-step-item" id="prog-wheel-3">
+        <div class="prog-dot">4</div>
+        <span class="prog-name">Wheel 4</span>
+      </div>
+      <div class="prog-connector"></div>
+      <div class="prog-step-item final-step" id="prog-center">
+        <div class="prog-dot">👑</div>
+        <span class="prog-name">Final Vault</span>
+      </div>
+    </div>
+
+    <!-- Active Equation Banner / Instruction Bar -->
+    <div class="instruction-banner" id="instruction-banner">
+      <div class="instruction-icon">🎯</div>
+      <div class="instruction-text" id="instruction-text">
+        Find the ONE number in each outer wheel that is the <strong>sum of two other numbers</strong>!
+      </div>
+    </div>
+
+    <!-- Main Game Arena -->
+    <main class="game-arena" id="game-arena">
+      <div class="board-grid" id="board-grid">
+        
+        <!-- Wheel 1: Top-Left -->
+        <section class="wheel-pod outer-wheel" id="wheel-pod-0" data-index="0" aria-label="Puzzle Wheel 1">
+          <div class="pod-header">
+            <span class="pod-badge">Group 1</span>
+            <span class="pod-op-badge" id="op-badge-0">+</span>
+            <span class="pod-split-time" id="split-time-0"></span>
+          </div>
+          <div class="numbers-cluster" id="cluster-0">
+            <!-- Dynamically populated numbers -->
+          </div>
+          <div class="pod-solved-overlay" id="solved-overlay-0">
+            <span class="overlay-check">✓</span>
+            <span class="overlay-target" id="overlay-target-0"></span>
+            <span class="overlay-equation" id="overlay-equation-0"></span>
+          </div>
+        </section>
+
+        <!-- Wheel 2: Top-Right -->
+        <section class="wheel-pod outer-wheel" id="wheel-pod-1" data-index="1" aria-label="Puzzle Wheel 2">
+          <div class="pod-header">
+            <span class="pod-badge">Group 2</span>
+            <span class="pod-op-badge" id="op-badge-1">+</span>
+            <span class="pod-split-time" id="split-time-1"></span>
+          </div>
+          <div class="numbers-cluster" id="cluster-1">
+            <!-- Dynamically populated numbers -->
+          </div>
+          <div class="pod-solved-overlay" id="solved-overlay-1">
+            <span class="overlay-check">✓</span>
+            <span class="overlay-target" id="overlay-target-1"></span>
+            <span class="overlay-equation" id="overlay-equation-1"></span>
+          </div>
+        </section>
+
+        <!-- Center Wheel: The Final Vault (5th puzzle) -->
+        <section class="wheel-pod center-wheel locked" id="center-pod" aria-label="Final Center Vault">
+          <div class="pod-header center-header">
+            <span class="pod-badge final-badge">👑 FINAL VAULT</span>
+            <span class="pod-op-badge final-op" id="center-op-badge">+</span>
+          </div>
+          <div class="center-stage-wrapper">
+            <div class="numbers-cluster center-cluster" id="center-cluster">
+              <!-- Dynamically populated with winning numbers as outer wheels solve -->
+              <div class="center-placeholder-slot" id="slot-0" data-slot="0"><span>?</span></div>
+              <div class="center-placeholder-slot" id="slot-1" data-slot="1"><span>?</span></div>
+              <div class="center-placeholder-slot" id="slot-2" data-slot="2"><span>?</span></div>
+              <div class="center-placeholder-slot" id="slot-3" data-slot="3"><span>?</span></div>
+            </div>
+            <div class="center-lock-shield" id="center-lock-shield">
+              <span class="lock-icon">🔒</span>
+              <span class="lock-caption">Solve 4 Groups to Unlock</span>
+            </div>
+          </div>
+          <div class="pod-solved-overlay center-solved-overlay" id="center-solved-overlay">
+            <span class="crown-icon">👑</span>
+            <span class="congrats-text">MASTER KAKOOMA!</span>
+            <span class="overlay-equation" id="center-overlay-equation"></span>
+          </div>
+        </section>
+
+        <!-- Wheel 3: Bottom-Left -->
+        <section class="wheel-pod outer-wheel" id="wheel-pod-2" data-index="2" aria-label="Puzzle Wheel 3">
+          <div class="pod-header">
+            <span class="pod-badge">Group 3</span>
+            <span class="pod-op-badge" id="op-badge-2">+</span>
+            <span class="pod-split-time" id="split-time-2"></span>
+          </div>
+          <div class="numbers-cluster" id="cluster-2">
+            <!-- Dynamically populated numbers -->
+          </div>
+          <div class="pod-solved-overlay" id="solved-overlay-2">
+            <span class="overlay-check">✓</span>
+            <span class="overlay-target" id="overlay-target-2"></span>
+            <span class="overlay-equation" id="overlay-equation-2"></span>
+          </div>
+        </section>
+
+        <!-- Wheel 4: Bottom-Right -->
+        <section class="wheel-pod outer-wheel" id="wheel-pod-3" data-index="3" aria-label="Puzzle Wheel 4">
+          <div class="pod-header">
+            <span class="pod-badge">Group 4</span>
+            <span class="pod-op-badge" id="op-badge-3">+</span>
+            <span class="pod-split-time" id="split-time-3"></span>
+          </div>
+          <div class="numbers-cluster" id="cluster-3">
+            <!-- Dynamically populated numbers -->
+          </div>
+          <div class="pod-solved-overlay" id="solved-overlay-3">
+            <span class="overlay-check">✓</span>
+            <span class="overlay-target" id="overlay-target-3"></span>
+            <span class="overlay-equation" id="overlay-equation-3"></span>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- Slide-Out Scratchpad Drawer -->
+    <aside class="scratchpad-drawer" id="scratchpad-drawer" aria-label="Math Scratchpad">
+      <div class="scratchpad-header">
+        <div class="drawer-title">
+          <span>✏️ Math Scratchpad</span>
+        </div>
+        <div class="scratchpad-actions">
+          <button id="btn-scratch-clear" class="scratch-btn" title="Clear notes">Clear</button>
+          <button id="btn-scratch-close" class="scratch-btn close-btn" title="Close">✕</button>
+        </div>
+      </div>
+      <div class="scratchpad-canvas-container">
+        <canvas id="scratchpad-canvas"></canvas>
+      </div>
+      <div class="scratchpad-footer">
+        <span class="scratch-tip">💡 Jot down quick additions or factor calculations here!</span>
+      </div>
+    </aside>
+
+    <!-- Equation Popover Toast -->
+    <div class="equation-toast" id="equation-toast" aria-live="polite">
+      <div class="toast-content" id="toast-content">
+        ✨ <strong>Awesome!</strong> 3 + 5 = 8
+      </div>
+    </div>
+
+  </div> <!-- /app-wrapper -->
+
+  <!-- Victory Fanfare Modal -->
+  <div class="modal-backdrop" id="victory-modal" role="dialog" aria-modal="true" aria-labelledby="victory-title">
+    <div class="victory-card">
+      <div class="victory-ribbon">
+        <span class="ribbon-sparkle">⭐</span>
+        <span class="ribbon-text">PUZZLE COMPLETE!</span>
+        <span class="ribbon-sparkle">⭐</span>
+      </div>
+
+      <div class="victory-trophy-display">
+        <div class="star-rating" id="star-rating">
+          <span class="star-item star-1" id="star-1">★</span>
+          <span class="star-item star-2" id="star-2">★</span>
+          <span class="star-item star-3" id="star-3">★</span>
+        </div>
+        <div class="trophy-badge" id="trophy-badge">🏆</div>
+      </div>
+
+      <div class="victory-time-box">
+        <span class="time-label">COMPLETION TIME</span>
+        <div class="time-big" id="victory-final-time">00:24.85</div>
+        <div class="new-record-tag" id="new-record-tag">🎉 NEW PERSONAL RECORD! 🎉</div>
+      </div>
+
+      <!-- Splits breakdown table -->
+      <div class="splits-card">
+        <div class="splits-heading">Round Split Times:</div>
+        <div class="splits-grid" id="splits-grid">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Victory Actions -->
+      <div class="victory-actions">
+        <button id="btn-victory-next" class="btn-primary-glow">
+          <span class="btn-icon">🚀</span> Play Next Round
+        </button>
+        <button id="btn-victory-replay" class="btn-secondary">
+          <span class="btn-icon">🔄</span> Replay Same Level
+        </button>
+        <button id="btn-victory-share" class="btn-secondary">
+          <span class="btn-icon">📋</span> Copy Score
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- How to Play Tutorial Modal -->
+  <div class="modal-backdrop" id="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <div class="help-card">
+      <div class="help-header">
+        <h2 id="help-title">How to Play Kakooma</h2>
+        <button id="btn-help-close" class="close-modal-btn">✕</button>
+      </div>
+
+      <div class="help-body">
+        <div class="help-step">
+          <div class="step-badge">1</div>
+          <div class="step-text">
+            <strong>Inspect Each Outer Wheel:</strong>
+            <p>Every outer group contains 4 or 5 numbers. Exactly <strong>ONE</strong> number is the sum (or product) of two other numbers in that wheel.</p>
+            <div class="help-visual-box">
+              <span class="visual-num">3</span> + <span class="visual-num">5</span> = <span class="visual-num highlight">8</span>
+              <span class="visual-label">➜ 8 is the Kakooma Number!</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="help-step">
+          <div class="step-badge">2</div>
+          <div class="step-text">
+            <strong>Click the Kakooma Number:</strong>
+            <p>When you click the correct number, watch it fly straight into the <strong>Final Center Vault</strong>!</p>
+          </div>
+        </div>
+
+        <div class="help-step">
+          <div class="step-badge">3</div>
+          <div class="step-text">
+            <strong>Solve All 4 Groups:</strong>
+            <p>Once you solve all 4 outer wheels, the 4 winning numbers assemble in the center vault!</p>
+          </div>
+        </div>
+
+        <div class="help-step">
+          <div class="step-badge">👑</div>
+          <div class="step-text">
+            <strong>Unlock & Conquer the Master Kakooma:</strong>
+            <p>Find the one number in the Center Vault that is the sum of two other center numbers to stop the clock and claim victory!</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="help-footer">
+        <button id="btn-help-gotit" class="btn-primary-glow">Got It, Let's Play! 🚀</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Core Scripts -->
+  <script src="js/audio.js"></script>
+  <script src="js/confetti.js"></script>
+  <script src="js/generator.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
