@@ -270,6 +270,8 @@ class KakoomaGame {
       const x = Math.round(Math.cos(angle) * radius);
       const y = Math.round(Math.sin(angle) * radius);
 
+      btn.style.setProperty('--x', `${x}px`);
+      btn.style.setProperty('--y', `${y}px`);
       btn.style.transform = `translate(${x}px, ${y}px)`;
 
       btn.addEventListener('click', (e) => {
@@ -289,6 +291,8 @@ class KakoomaGame {
       const angle = (i * (Math.PI / 2)) - (Math.PI / 4);
       const x = Math.round(Math.cos(angle) * radius);
       const y = Math.round(Math.sin(angle) * radius);
+      slot.style.setProperty('--x', `${x}px`);
+      slot.style.setProperty('--y', `${y}px`);
       slot.style.transform = `translate(${x}px, ${y}px)`;
     });
   }
@@ -463,6 +467,8 @@ class KakoomaGame {
       const angle = (i * (Math.PI / 2)) - (Math.PI / 4);
       const x = Math.round(Math.cos(angle) * radius);
       const y = Math.round(Math.sin(angle) * radius);
+      btn.style.setProperty('--x', `${x}px`);
+      btn.style.setProperty('--y', `${y}px`);
       btn.style.transform = `translate(${x}px, ${y}px)`;
 
       btn.addEventListener('click', () => {
