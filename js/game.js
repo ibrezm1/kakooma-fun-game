@@ -7,7 +7,8 @@ class KakoomaGame {
   constructor() {
     this.operation = '+';
     this.maxVal = 10;
-    this.wheelSize = 5;
+    this.wheelSize = parseInt(localStorage.getItem('kakooma_size') || '5', 10);
+    this.layoutMode = localStorage.getItem('kakooma_layout') || 'circle';
 
     this.puzzle = null;
     this.solvedWheels = [false, false, false, false];
@@ -73,22 +74,59 @@ class KakoomaGame {
     // Level / Max Sum switch
     document.querySelectorAll('#level-toggle .toggle-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
+        const selectedLevel = parseInt(btn.getAttribute('data-level'), 10);
+        if (this.wheelSize >= 6 && selectedLevel < 20) {
+          this.showToast(`⚡ 6 & 7-number wheels require "20 & Under" or higher. Switched to 5 numbers!`, true);
+          this.wheelSize = 5;
+          document.querySelectorAll('#size-toggle .toggle-btn').forEach(b => b.classList.remove('active'));
+          const size5Btn = document.getElementById('size-5');
+          if (size5Btn) size5Btn.classList.add('active');
+        }
         document.querySelectorAll('#level-toggle .toggle-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        this.maxVal = parseInt(btn.getAttribute('data-level'), 10);
+        this.maxVal = selectedLevel;
         this.loadBestRecord();
         this.startNewGame();
       });
     });
 
-    // Wheel Size switch
+    // Restore active size button
+    document.querySelectorAll('#size-toggle .toggle-btn').forEach(b => {
+      b.classList.toggle('active', parseInt(b.getAttribute('data-size'), 10) === this.wheelSize);
+    });
+
+    // Wheel Size switch (Supports 4, 5, 6, 7 numbers)
     document.querySelectorAll('#size-toggle .toggle-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         document.querySelectorAll('#size-toggle .toggle-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         this.wheelSize = parseInt(btn.getAttribute('data-size'), 10);
+        localStorage.setItem('kakooma_size', this.wheelSize);
+        if (this.wheelSize >= 6 && this.maxVal < 20) {
+          this.maxVal = 20;
+          document.querySelectorAll('#level-toggle .toggle-btn').forEach(b => b.classList.remove('active'));
+          const level20Btn = document.getElementById('level-20');
+          if (level20Btn) level20Btn.classList.add('active');
+          this.showToast(`⚡ Switched to "20 & Under" for ${this.wheelSize}-number puzzles!`, false);
+        }
         this.loadBestRecord();
         this.startNewGame();
+      });
+    });
+
+    // Layout Style switch (Circle vs Table)
+    document.querySelectorAll('#layout-toggle .toggle-btn').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-layout') === this.layoutMode);
+    });
+
+    document.querySelectorAll('#layout-toggle .toggle-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#layout-toggle .toggle-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.layoutMode = btn.getAttribute('data-layout');
+        localStorage.setItem('kakooma_layout', this.layoutMode);
+        window.soundEngine.playTap();
+        this.renderCurrentBoard();
       });
     });
 
@@ -217,18 +255,8 @@ class KakoomaGame {
     document.getElementById('center-solved-overlay').style.opacity = '0';
     document.getElementById('center-solved-overlay').style.pointerEvents = 'none';
 
-    // Clear center slots
-    const centerCluster = document.getElementById('center-cluster');
-    centerCluster.innerHTML = '';
-    for (let i = 0; i < 4; i++) {
-      const slot = document.createElement('div');
-      slot.className = 'center-placeholder-slot';
-      slot.id = `slot-${i}`;
-      slot.setAttribute('data-slot', i);
-      slot.innerHTML = '<span>?</span>';
-      centerCluster.appendChild(slot);
-    }
-    this.positionCenterSlots();
+    // Clear and render center slots according to current layout
+    this.renderCenterSlots();
 
     // Generate puzzle
     this.puzzle = window.kakoomaGenerator.generateGame({
@@ -247,25 +275,171 @@ class KakoomaGame {
   }
 
   // --------------------------------------------------------------------------
-  // Rendering Wheels with Balanced Geometric Circular Layouts
+  // Board Rendering (Supports Circle Orbit & Structured Table/Grid Layouts)
   // --------------------------------------------------------------------------
+  renderCurrentBoard() {
+    if (!this.puzzle) return;
+    for (let i = 0; i < 4; i++) {
+      this.renderWheel(i, this.puzzle.wheels[i]);
+    }
+    const allOuterSolved = this.solvedWheels.every(Boolean);
+    if (allOuterSolved) {
+      this.unlockCenterVault();
+    } else {
+      this.renderCenterSlots();
+    }
+  }
+
+  createNumberButton(wheelIdx, num, extraClasses = '') {
+    const btn = document.createElement('button');
+    btn.className = `num-btn ${extraClasses}`.trim();
+    btn.textContent = num;
+    btn.setAttribute('data-wheel', wheelIdx);
+    btn.setAttribute('data-val', num);
+    btn.setAttribute('aria-label', `Number ${num}`);
+    btn.addEventListener('click', () => {
+      this.handleNumberClick(wheelIdx, num, btn);
+    });
+    return btn;
+  }
+
   renderWheel(wheelIdx, wheelData) {
     const cluster = document.getElementById(`cluster-${wheelIdx}`);
     cluster.innerHTML = '';
 
     const numbers = wheelData.numbers;
+    if (this.layoutMode === 'table') {
+      this.renderWheelTable(cluster, wheelIdx, numbers);
+    } else {
+      this.renderWheelCircle(cluster, wheelIdx, numbers);
+    }
+  }
+
+  renderWheelTable(cluster, wheelIdx, numbers) {
     const n = numbers.length;
-    const radius = 62; // Distance from center of cluster in px
+    const table = document.createElement('table');
+    table.className = `numbers-table table-size-${n}`;
+    const tbody = document.createElement('tbody');
+
+    if (n === 4) {
+      // 2x2 Table Grid
+      const row1 = document.createElement('tr');
+      const row2 = document.createElement('tr');
+      [numbers[0], numbers[1]].forEach(num => {
+        const td = document.createElement('td');
+        td.appendChild(this.createNumberButton(wheelIdx, num, 'table-btn'));
+        row1.appendChild(td);
+      });
+      [numbers[2], numbers[3]].forEach(num => {
+        const td = document.createElement('td');
+        td.appendChild(this.createNumberButton(wheelIdx, num, 'table-btn'));
+        row2.appendChild(td);
+      });
+      tbody.appendChild(row1);
+      tbody.appendChild(row2);
+    } else if (n === 5) {
+      // 2 Rows: 3 top, 2 centered bottom
+      const row1 = document.createElement('tr');
+      [numbers[0], numbers[1], numbers[2]].forEach(num => {
+        const td = document.createElement('td');
+        td.setAttribute('colspan', '2');
+        td.appendChild(this.createNumberButton(wheelIdx, num, 'table-btn'));
+        row1.appendChild(td);
+      });
+
+      const row2 = document.createElement('tr');
+      const sL = document.createElement('td');
+      sL.setAttribute('colspan', '1');
+      row2.appendChild(sL);
+      [numbers[3], numbers[4]].forEach(num => {
+        const td = document.createElement('td');
+        td.setAttribute('colspan', '2');
+        td.appendChild(this.createNumberButton(wheelIdx, num, 'table-btn'));
+        row2.appendChild(td);
+      });
+      const sR = document.createElement('td');
+      sR.setAttribute('colspan', '1');
+      row2.appendChild(sR);
+
+      tbody.appendChild(row1);
+      tbody.appendChild(row2);
+    } else if (n === 6) {
+      // 2 Rows of 3 numbers
+      const row1 = document.createElement('tr');
+      const row2 = document.createElement('tr');
+      [numbers[0], numbers[1], numbers[2]].forEach(num => {
+        const td = document.createElement('td');
+        td.appendChild(this.createNumberButton(wheelIdx, num, 'table-btn table-btn-compact'));
+        row1.appendChild(td);
+      });
+      [numbers[3], numbers[4], numbers[5]].forEach(num => {
+        const td = document.createElement('td');
+        td.appendChild(this.createNumberButton(wheelIdx, num, 'table-btn table-btn-compact'));
+        row2.appendChild(td);
+      });
+      tbody.appendChild(row1);
+      tbody.appendChild(row2);
+    } else {
+      // 7 Numbers: Honeycomb 2-3-2 symmetrical layout
+      const row1 = document.createElement('tr');
+      const s1L = document.createElement('td');
+      s1L.setAttribute('colspan', '1');
+      row1.appendChild(s1L);
+      [numbers[0], numbers[1]].forEach(num => {
+        const td = document.createElement('td');
+        td.setAttribute('colspan', '2');
+        td.appendChild(this.createNumberButton(wheelIdx, num, 'table-btn table-btn-dense'));
+        row1.appendChild(td);
+      });
+      const s1R = document.createElement('td');
+      s1R.setAttribute('colspan', '1');
+      row1.appendChild(s1R);
+
+      const row2 = document.createElement('tr');
+      [numbers[2], numbers[3], numbers[4]].forEach(num => {
+        const td = document.createElement('td');
+        td.setAttribute('colspan', '2');
+        td.appendChild(this.createNumberButton(wheelIdx, num, 'table-btn table-btn-dense'));
+        row2.appendChild(td);
+      });
+
+      const row3 = document.createElement('tr');
+      const s3L = document.createElement('td');
+      s3L.setAttribute('colspan', '1');
+      row3.appendChild(s3L);
+      [numbers[5], numbers[6]].forEach(num => {
+        const td = document.createElement('td');
+        td.setAttribute('colspan', '2');
+        td.appendChild(this.createNumberButton(wheelIdx, num, 'table-btn table-btn-dense'));
+        row3.appendChild(td);
+      });
+      const s3R = document.createElement('td');
+      s3R.setAttribute('colspan', '1');
+      row3.appendChild(s3R);
+
+      tbody.appendChild(row1);
+      tbody.appendChild(row2);
+      tbody.appendChild(row3);
+    }
+
+    table.appendChild(tbody);
+    cluster.appendChild(table);
+  }
+
+  renderWheelCircle(cluster, wheelIdx, numbers) {
+    const n = numbers.length;
+    let radius = 62;
+    let sizeClass = '';
+    if (n === 6) {
+      radius = 66;
+      sizeClass = 'size-compact';
+    } else if (n >= 7) {
+      radius = 70;
+      sizeClass = 'size-dense';
+    }
 
     numbers.forEach((num, i) => {
-      const btn = document.createElement('button');
-      btn.className = 'num-btn';
-      btn.textContent = num;
-      btn.setAttribute('data-wheel', wheelIdx);
-      btn.setAttribute('data-val', num);
-      btn.setAttribute('aria-label', `Number ${num}`);
-
-      // Calculate circular coordinates: 0 is at 12 o'clock (-PI / 2)
+      const btn = this.createNumberButton(wheelIdx, num, sizeClass);
       const angle = (i * (2 * Math.PI / n)) - (Math.PI / 2);
       const x = Math.round(Math.cos(angle) * radius);
       const y = Math.round(Math.sin(angle) * radius);
@@ -274,17 +448,81 @@ class KakoomaGame {
       btn.style.setProperty('--y', `${y}px`);
       btn.style.transform = `translate(${x}px, ${y}px)`;
 
-      btn.addEventListener('click', (e) => {
-        this.handleNumberClick(wheelIdx, num, btn);
-      });
-
       cluster.appendChild(btn);
     });
   }
 
+  renderCenterSlots() {
+    const centerCluster = document.getElementById('center-cluster');
+    centerCluster.innerHTML = '';
+
+    if (this.layoutMode === 'table') {
+      const table = document.createElement('table');
+      table.className = 'numbers-table center-table table-size-4';
+      const tbody = document.createElement('tbody');
+
+      const row1 = document.createElement('tr');
+      [0, 1].forEach(slotIdx => {
+        const td = document.createElement('td');
+        const slot = document.createElement('div');
+        slot.className = 'center-placeholder-slot table-slot';
+        slot.id = `slot-${slotIdx}`;
+        slot.setAttribute('data-slot', slotIdx);
+        const isSolved = this.solvedWheels[slotIdx];
+        if (isSolved && this.puzzle) {
+          slot.classList.add('filled');
+          slot.innerHTML = `<span>${this.puzzle.wheels[slotIdx].target}</span>`;
+        } else {
+          slot.innerHTML = '<span>?</span>';
+        }
+        td.appendChild(slot);
+        row1.appendChild(td);
+      });
+
+      const row2 = document.createElement('tr');
+      [2, 3].forEach(slotIdx => {
+        const td = document.createElement('td');
+        const slot = document.createElement('div');
+        slot.className = 'center-placeholder-slot table-slot';
+        slot.id = `slot-${slotIdx}`;
+        slot.setAttribute('data-slot', slotIdx);
+        const isSolved = this.solvedWheels[slotIdx];
+        if (isSolved && this.puzzle) {
+          slot.classList.add('filled');
+          slot.innerHTML = `<span>${this.puzzle.wheels[slotIdx].target}</span>`;
+        } else {
+          slot.innerHTML = '<span>?</span>';
+        }
+        td.appendChild(slot);
+        row2.appendChild(td);
+      });
+
+      tbody.appendChild(row1);
+      tbody.appendChild(row2);
+      table.appendChild(tbody);
+      centerCluster.appendChild(table);
+    } else {
+      for (let i = 0; i < 4; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'center-placeholder-slot';
+        slot.id = `slot-${i}`;
+        slot.setAttribute('data-slot', i);
+        const isSolved = this.solvedWheels[i];
+        if (isSolved && this.puzzle) {
+          slot.classList.add('filled');
+          slot.innerHTML = `<span>${this.puzzle.wheels[i].target}</span>`;
+        } else {
+          slot.innerHTML = '<span>?</span>';
+        }
+        centerCluster.appendChild(slot);
+      }
+      this.positionCenterSlots();
+    }
+  }
+
   positionCenterSlots() {
     // 4 slots in center wheel: diamond or square layout
-    const slots = document.querySelectorAll('.center-placeholder-slot');
+    const slots = document.querySelectorAll('#center-cluster .center-placeholder-slot:not(.table-slot)');
     const radius = 68;
     slots.forEach((slot, i) => {
       // 4 corners: 45, 135, 225, 315 deg
@@ -456,29 +694,61 @@ class KakoomaGame {
     const centerCluster = document.getElementById('center-cluster');
     centerCluster.innerHTML = '';
 
-    const radius = 68;
-    centerTargets.forEach((num, i) => {
-      const btn = document.createElement('button');
-      btn.className = 'num-btn';
-      btn.textContent = num;
-      btn.setAttribute('data-val', num);
-      btn.setAttribute('aria-label', `Final Master Number ${num}`);
+    if (this.layoutMode === 'table') {
+      const table = document.createElement('table');
+      table.className = 'numbers-table center-table table-size-4';
+      const tbody = document.createElement('tbody');
 
-      const angle = (i * (Math.PI / 2)) - (Math.PI / 4);
-      const x = Math.round(Math.cos(angle) * radius);
-      const y = Math.round(Math.sin(angle) * radius);
-      btn.style.setProperty('--x', `${x}px`);
-      btn.style.setProperty('--y', `${y}px`);
-      btn.style.transform = `translate(${x}px, ${y}px)`;
-
-      btn.addEventListener('click', () => {
-        this.handleCenterClick(num, btn);
+      const row1 = document.createElement('tr');
+      [0, 1].forEach(idx => {
+        const num = centerTargets[idx];
+        const td = document.createElement('td');
+        const btn = this.createCenterButton(num, 'table-btn');
+        td.appendChild(btn);
+        row1.appendChild(td);
       });
 
-      centerCluster.appendChild(btn);
-    });
+      const row2 = document.createElement('tr');
+      [2, 3].forEach(idx => {
+        const num = centerTargets[idx];
+        const td = document.createElement('td');
+        const btn = this.createCenterButton(num, 'table-btn');
+        td.appendChild(btn);
+        row2.appendChild(td);
+      });
+
+      tbody.appendChild(row1);
+      tbody.appendChild(row2);
+      table.appendChild(tbody);
+      centerCluster.appendChild(table);
+    } else {
+      const radius = 68;
+      centerTargets.forEach((num, i) => {
+        const btn = this.createCenterButton(num);
+        const angle = (i * (Math.PI / 2)) - (Math.PI / 4);
+        const x = Math.round(Math.cos(angle) * radius);
+        const y = Math.round(Math.sin(angle) * radius);
+        btn.style.setProperty('--x', `${x}px`);
+        btn.style.setProperty('--y', `${y}px`);
+        btn.style.transform = `translate(${x}px, ${y}px)`;
+
+        centerCluster.appendChild(btn);
+      });
+    }
 
     this.showToast('🚀 ALL 4 WHEELS COMPLETE! Final Vault UNLOCKED!', false);
+  }
+
+  createCenterButton(num, extraClasses = '') {
+    const btn = document.createElement('button');
+    btn.className = `num-btn ${extraClasses}`.trim();
+    btn.textContent = num;
+    btn.setAttribute('data-val', num);
+    btn.setAttribute('aria-label', `Final Master Number ${num}`);
+    btn.addEventListener('click', () => {
+      this.handleCenterClick(num, btn);
+    });
+    return btn;
   }
 
   // --------------------------------------------------------------------------

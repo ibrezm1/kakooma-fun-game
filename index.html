@@ -106,8 +106,23 @@
       <div class="toolbar-group">
         <span class="group-label">Size:</span>
         <div class="toggle-group" id="size-toggle">
-          <button class="toggle-btn" data-size="4" id="size-4">4 Numbers</button>
-          <button class="toggle-btn active" data-size="5" id="size-5">5 Numbers</button>
+          <button class="toggle-btn" data-size="4" id="size-4" title="4 numbers per group (Junior / Fast)">4 Numbers</button>
+          <button class="toggle-btn active" data-size="5" id="size-5" title="5 numbers per group (Standard Classic)">5 Numbers</button>
+          <button class="toggle-btn" data-size="6" id="size-6" title="6 numbers per group (Intermediate)">6 Numbers</button>
+          <button class="toggle-btn" data-size="7" id="size-7" title="7 numbers per group (Advanced Pro)">7 Numbers</button>
+        </div>
+      </div>
+
+      <!-- Layout Style Selector (Circle vs Table) -->
+      <div class="toolbar-group">
+        <span class="group-label">Layout:</span>
+        <div class="toggle-group" id="layout-toggle">
+          <button class="toggle-btn active" data-layout="circle" id="layout-circle" title="Circular wheel orbit layout">
+            <span class="layout-icon">🎡</span> Circle
+          </button>
+          <button class="toggle-btn" data-layout="table" id="layout-table" title="Structured table grid layout (recommended if circle feels dense)">
+            <span class="layout-icon">▦</span> Table
+          </button>
         </div>
       </div>
     </nav>
@@ -336,8 +351,8 @@
         <div class="help-step">
           <div class="step-badge">1</div>
           <div class="step-text">
-            <strong>Inspect Each Outer Wheel:</strong>
-            <p>Every outer group contains 4 or 5 numbers. Exactly <strong>ONE</strong> number is the sum (or product) of two other numbers in that wheel.</p>
+            <strong>Inspect Each Outer Group:</strong>
+            <p>Every group contains <strong>4, 5, 6, or 7 numbers</strong> (in Circle or Table layout). Exactly <strong>ONE</strong> number is the sum (or product) of two other numbers in that group.</p>
             <div class="help-visual-box">
               <span class="visual-num">3</span> + <span class="visual-num">5</span> = <span class="visual-num highlight">8</span>
               <span class="visual-label">➜ 8 is the Kakooma Number!</span>
